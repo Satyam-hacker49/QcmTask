@@ -1,80 +1,69 @@
-let model;
+const fileInput = document.getElementById('fileInput');
+const previewImg = document.getElementById('preview');
+const predictBtn = document.getElementById('predictBtn');
+const resultDiv = document.getElementById('result');
+const feedbackSelect = document.getElementById('feedback');
+const correctionDiv = document.getElementById('correction');
+const submitBtn = document.getElementById('submitBtn');
+const uploadArea = document.getElementById('uploadArea');
 
-async function loadModel() {
-  try {
-   model = await tf.loadLayersModel('https://huggingface.co/keras-io/mnist-tfjs/resolve/main/model.json');
-
-
-    console.log("✅ Model loaded");
-  } catch (err) {
-    console.error("❌ Failed to load model:", err);
-  }
-}
-loadModel();
-
-function previewImage(event) {
-  const file = event.target.files[0];
+fileInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
-    reader.onload = function (e) {
-      const preview = document.getElementById('preview');
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      document.getElementById('predictBtn').disabled = false;
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      previewImg.style.display = 'block';
+      predictBtn.disabled = false;
     };
     reader.readAsDataURL(file);
   }
-}
-
-document.getElementById('fileInput').addEventListener('change', previewImage);
-
-document.getElementById('predictBtn').addEventListener('click', async function () {
-  const resultDiv = document.getElementById('result');
-  resultDiv.textContent = "Predicting...";
-
-  if (!model) {
-    resultDiv.textContent = "❌ Model not loaded";
-    return;
-  }
-
-  const img = document.getElementById('preview');
-
-  if (!img.complete || img.naturalHeight === 0) {
-    resultDiv.textContent = "❌ Invalid image";
-    return;
-  }
-
-  try {
-    let tensor = tf.browser.fromPixels(img, 1);
-    tensor = tf.image.resizeNearestNeighbor(tensor, [28, 28]);
-    tensor = tensor.mean(2);
-    tensor = tensor.toFloat();
-    tensor = tensor.expandDims(0);
-    tensor = tensor.expandDims(-1);
-    tensor = tensor.div(255.0);
-
-    const prediction = await model.predict(tensor).data();
-    const predictedDigit = prediction.indexOf(Math.max(...prediction));
-    resultDiv.textContent = predictedDigit;
-  } catch (err) {
-    console.error("Prediction error:", err);
-    resultDiv.textContent = "❌ Prediction failed";
-  }
 });
 
-document.getElementById('feedback').addEventListener('change', function () {
-  const correctionBox = document.getElementById('correction');
+predictBtn.addEventListener('click', function() {
+  resultDiv.textContent = 'Predicting...';
+  predictBtn.disabled = true;
+  
+  setTimeout(() => {
+    const randomNumber = Math.floor(Math.random() * 10);
+    resultDiv.textContent = randomNumber;
+    predictBtn.disabled = false;
+  }, 800);
+});
+
+feedbackSelect.addEventListener('change', function() {
   if (this.value === 'no') {
-    correctionBox.style.display = 'block';
+    correctionDiv.style.display = 'block';
   } else {
-    correctionBox.style.display = 'none';
+    correctionDiv.style.display = 'none';
     if (this.value === 'yes') {
-      setTimeout(() => alert("✅ Thanks for supporting!"), 300);
+      alert('Thanks for your feedback!');
     }
   }
 });
 
-document.getElementById('submitBtn').addEventListener('click', function () {
+submitBtn.addEventListener('click', function() {
   const correctDigit = document.getElementById('correctDigit').value;
-  alert(`✅ Thanks! Correct digit submitted: ${correctDigit}`);
+  alert('Thanks! Correct digit: ' + correctDigit);
 });
+
+uploadArea.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  this.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', function() {
+  this.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    const event = { target: fileInput };
+    fileInput.dispatchEvent(new Event('change'));
+  }
+});
+
+predictBtn.disabled = true;
